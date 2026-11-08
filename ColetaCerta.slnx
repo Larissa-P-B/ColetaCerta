@@ -1,0 +1,4 @@
+<Solution>
+  <Project Path="ColetaCerta.Api/ColetaCerta.Api.csproj" />
+  <Project Path="ColetaCerta.GeradorSenhas/ColetaCerta.GeradorSenhas.csproj" />
+</Solution>
