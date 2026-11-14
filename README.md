@@ -1,3 +1,10 @@
+# Integrantes: 
+- Dayana Ticona 558023
+- Larissa Biusse 564068
+- Rodrigo Leme 550266
+- Thamiris Almeida 559155
+- Werbeth Nunes - 559067
+
 # ColetaCerta
 
 API REST para gerenciar pontos de coleta e suas lixeiras. A API consulta o ESP32 simulado no Wokwi para obter o nível de ocupação e um serviço Python para obter previsões de solicitações de coleta por região.
