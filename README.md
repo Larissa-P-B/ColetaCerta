@@ -1,9 +1,11 @@
 # Integrantes: 
-- Dayana Ticona 558023
-- Larissa Biusse 564068
-- Rodrigo Leme 550266
-- Thamiris Almeida 559155
-- Werbeth Nunes - 559067
+| Nome | RM |
+|---|---|
+|Dayana Ticona | 558023 |
+|Larissa Biusse | 564068 |
+|Rodrigo Leme | 550266 |
+|Thamiris Almeida | 559155 |
+|Werbeth Nunes | 559067 |
 
 # ColetaCerta
 
