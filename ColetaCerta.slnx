@@ -1,4 +1,5 @@
 <Solution>
   <Project Path="ColetaCerta.Api/ColetaCerta.Api.csproj" />
   <Project Path="ColetaCerta.GeradorSenhas/ColetaCerta.GeradorSenhas.csproj" />
+  <Project Path="ColetaCerta.Tests/ColetaCerta.Tests.csproj" Id="5b391760-2928-4b81-8af1-7618bcf7151d" />
 </Solution>

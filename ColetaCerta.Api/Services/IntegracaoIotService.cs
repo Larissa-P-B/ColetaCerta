@@ -56,13 +56,9 @@ public class IntegracaoIotService : IIntegracaoIotService
                 "O percentual recebido deve estar entre 0 e 100.");
         }
 
-        var situacao = percentual switch
-        {
-            <= 10 => SituacaoOcupacao.Vazia,
-            < 80 => SituacaoOcupacao.ParcialmenteCheia,
-            < 95 => SituacaoOcupacao.QuaseCheia,
-            _ => SituacaoOcupacao.Cheia
-        };
+        
+
+       var situacao = ClassificadorOcupacao.Classificar(percentual);
 
         return new LixeiraOcupacaoResponse(
             LixeiraId: lixeiraId,

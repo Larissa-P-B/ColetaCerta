@@ -180,6 +180,28 @@ builder.Services
             client.BaseAddress = uri;
             client.Timeout = TimeSpan.FromSeconds(10);
         });
+builder.Services
+    .AddHttpClient<IIntegracaoIaService, IntegracaoIaService>(
+        client =>
+        {
+            var endereco = builder.Configuration[
+                "Integracoes:Ia:BaseUrl"];
+
+            if (!Uri.TryCreate(
+                    endereco,
+                    UriKind.Absolute,
+                    out var uri)
+                || (uri.Scheme != Uri.UriSchemeHttp
+                    && uri.Scheme != Uri.UriSchemeHttps))
+            {
+                throw new InvalidOperationException(
+                    "Configure um endereço HTTP válido " +
+                    "em Integracoes:Ia:BaseUrl.");
+            }
+
+            client.BaseAddress = uri;
+            client.Timeout = TimeSpan.FromSeconds(10);
+        });
 
 var app = builder.Build();
 
@@ -204,3 +226,7 @@ app.UseAuthorization();
 app.MapControllers();
 
 app.Run();
+
+public partial class Program
+{
+}
