@@ -245,3 +245,158 @@ No Visual Studio, também é possível usar **Teste → Gerenciador de Testes �
 | Ocupação, leitura de outra lixeira e respostas de IA | Validadas com respostas simuladas |
 | Serviços externos desligados | `503` observado no Swagger nas duas rotas |
 | Consulta ponta a ponta ao ESP32 e ao serviço Python | Pendente até a disponibilização dos serviços pela equipe |
+
+## Resumo das evidências
+
+| Evidência no Swagger | Resultado esperado |
+|---|---|
+| Login como ADMIN | **200**, com perfil `ADMIN` |
+| Cadastro de ponto de coleta | **201** |
+| Cadastro de lixeira vinculada ao ponto | **201** |
+| Consulta dos registros cadastrados | **200**, mostrando os dados |
+| Atualização e consulta do registro alterado | **204** na atualização e **200** na consulta |
+| Exclusão de um registro de teste | **204** |
+| Cadastro com capacidade inválida | **400** |
+| Cadastro com código de lixeira duplicado | **409** |
+| Exclusão de ponto com lixeiras vinculadas | **409** |
+| USER consultando e tentando cadastrar | **200** na consulta e **403** no cadastro |
+| Consulta sem token | **401** |
+
+## 01. Login como ADMIN
+
+**Endpoint:** `POST /api/auth/login`
+
+**Resultado esperado:** **200 OK**, com o campo `perfil` igual a `ADMIN`.
+
+**Print — `01-login-admin.png`**
+
+<img width="1192" height="646" alt="image" src="https://github.com/user-attachments/assets/de066f56-173f-421e-8cab-cd4f91f4d474" />
+
+
+## 02. Cadastro de ponto de coleta
+
+**Endpoint:** `POST /api/pontos-coleta`
+
+**Resultado esperado:** **201 Created**, com o ID do ponto cadastrado.
+
+**Print — `02-cadastro-ponto.png`**
+
+<img width="1191" height="842" alt="image" src="https://github.com/user-attachments/assets/0f539989-48ca-4269-9bc7-9be74969a9e2" />
+
+
+## 03. Cadastro de lixeira vinculada ao ponto
+
+**Endpoint:** `POST /api/lixeiras`
+
+**Resultado esperado:** **201 Created**, com o campo `pontoColetaId` correspondente ao ponto existente.
+
+**Print — `03-cadastro-lixeira.png`**
+
+<img width="1190" height="817" alt="image" src="https://github.com/user-attachments/assets/44b2ed07-5b25-4d42-b3a7-20e08849593a" />
+
+
+## 04. Consulta dos registros cadastrados
+
+**Endpoint:** `GET /api/pontos-coleta` e `GET /api/lixeiras`
+
+**Resultado esperado:** **200 OK**, exibindo os registros cadastrados.
+
+**Print — `04a-consulta-pontos.png`**
+
+<img width="1188" height="780" alt="image" src="https://github.com/user-attachments/assets/7ce73b4a-58f3-49a7-aea4-4c8f67345221" />
+
+
+**Print — `04b-consulta-lixeiras.png`**
+
+<img width="1186" height="746" alt="image" src="https://github.com/user-attachments/assets/0391d096-07bf-4d2b-906c-d6ba20b37703" />
+
+
+## 05. Atualização e consulta do registro alterado
+
+**Endpoint:** `PUT /api/lixeiras/{id}` e `GET /api/lixeiras/{id}`
+
+**Resultado esperado:** **204 No Content** na atualização e **200 OK** na consulta, com o valor alterado visível.
+
+**Print — `05a-atualizacao-lixeira.png`**
+
+<img width="1183" height="755" alt="image" src="https://github.com/user-attachments/assets/7ee67c84-bb8b-43b2-bd52-80f5683e5830" />
+
+
+**Print — `05b-consulta-lixeira-atualizada.png`**
+
+<img width="1177" height="782" alt="image" src="https://github.com/user-attachments/assets/0f7f0e32-4dd8-4486-a205-179e212e9c0c" />
+
+
+## 06. Exclusão de um registro de teste
+
+**Endpoint:** `DELETE /api/lixeiras/{id}`
+
+**Resultado esperado:** **204 No Content** para uma lixeira de teste existente.
+
+**Print — `06-exclusao-lixeira.png`**
+
+<img width="1182" height="826" alt="image" src="https://github.com/user-attachments/assets/f89763ec-0337-43b5-ac3f-8ad6faae9017" />
+
+
+## 07. Cadastro com capacidade inválida
+
+**Endpoint:** `POST /api/lixeiras`
+
+**Resultado esperado:** **400 Bad Request** ao enviar `capacidadeLitros` igual a `0`, com os demais campos válidos.
+
+**Print — `07-capacidade-invalida.png`**
+
+<img width="1418" height="723" alt="image" src="https://github.com/user-attachments/assets/d9ce07a1-a77c-43a7-b2e2-66f155151529" />
+
+
+## 08. Cadastro com código de lixeira duplicado
+
+**Endpoint:** `POST /api/lixeiras`
+
+**Resultado esperado:** **409 Conflict** ao enviar o código de uma lixeira ainda cadastrada, com os demais campos válidos.
+
+**Print — `08-codigo-duplicado.png`**
+
+<img width="1417" height="698" alt="image" src="https://github.com/user-attachments/assets/6bb11415-bf2f-4e70-9ce6-aef772952262" />
+
+
+## 09. Exclusão de ponto com lixeiras vinculadas
+
+**Endpoint:** `DELETE /api/pontos-coleta/{id}`
+
+**Resultado esperado:** **409 Conflict** ao tentar excluir um ponto que possui pelo menos uma lixeira vinculada.
+
+**Print — `09-ponto-com-lixeiras.png`**
+
+<img width="1418" height="626" alt="image" src="https://github.com/user-attachments/assets/c87bcc0c-570e-4056-a3e9-3b88a8ebab6e" />
+
+
+## 10. USER consultando e tentando cadastrar
+
+**Endpoint:** `GET /api/pontos-coleta` e `POST /api/pontos-coleta`
+
+**Resultado esperado:** Com o token de `USER`, **200 OK** na consulta e **403 Forbidden** no cadastro com dados válidos.
+
+**Print — `10a-user-consulta.png`**
+<img width="1417" height="677" alt="image" src="https://github.com/user-attachments/assets/55e7630f-de3e-4cc0-a70a-ef25c6ee81cf" />
+
+
+<img width="1392" height="748" alt="image" src="https://github.com/user-attachments/assets/dc7d13e4-a233-4dc0-b143-8c0fc7f15249" />
+
+
+**Print — `10b-user-cadastro-bloqueado.png`**
+
+<img width="1426" height="637" alt="image" src="https://github.com/user-attachments/assets/68a01d0e-9c90-40cf-9f2f-4bd8563cf086" />
+
+
+## 11. Consulta sem token
+
+**Endpoint:** `GET /api/pontos-coleta`
+
+**Resultado esperado:** **401 Unauthorized** após remover a autorização no botão Authorize do Swagger.
+
+**Print — `11-consulta-sem-token.png`**
+
+<img width="1413" height="517" alt="image" src="https://github.com/user-attachments/assets/1cb0ef48-b408-4c3a-aa40-a815c955c564" />
+
+
