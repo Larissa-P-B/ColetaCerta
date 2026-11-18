@@ -9,7 +9,7 @@
 
 # ColetaCerta
 
-API REST para gerenciar pontos de coleta e suas lixeiras. A API consulta o ESP32 simulado no Wokwi para obter o nível de ocupação e um serviço Python para obter previsões de solicitações de coleta por região.
+API REST para gerenciar pontos de coleta e suas lixeiras. A API consulta, por meio do Thinger.io, o ESP32 simulado no Wokwi para obter o nível de ocupação e um serviço Python para obter previsões de solicitações de coleta por região.
 
 Projeto da Global Solution CitizenTech para **C# Software Development** e **Arquitetura Orientada a Serviços (SOA) e Web Services**.
 
@@ -61,6 +61,11 @@ No Visual Studio, clique com o botão direito em `ColetaCerta.Api` e selecione *
   },
   "Jwt": {
     "Key": "SUBSTITUA_POR_UMA_CHAVE_ALEATORIA"
+  },
+  "Integracoes": {
+    "Wokwi": {
+      "Token": "SUBSTITUA_PELO_TOKEN_DO_THINGER"
+    }
   }
 }
 ```
@@ -75,7 +80,7 @@ $geradorColetaCerta.Dispose()
 [Convert]::ToBase64String($chaveColetaCerta)
 ```
 
-Mantenha a senha do banco e a chave JWT fora do Git. Em ambientes configurados por variáveis de ambiente, use `ConnectionStrings__DefaultConnection` e `Jwt__Key`.
+Mantenha a senha do banco, a chave JWT e o token do Thinger.io fora do Git. Em ambientes configurados por variáveis de ambiente, use `ConnectionStrings__DefaultConnection`, `Jwt__Key` e `Integracoes__Wokwi__Token`. O token do Thinger.io é necessário para a consulta IoT e deve ser fornecido pela equipe por um canal privado. Ele é diferente do JWT obtido no login da API C#.
 
 No `appsettings.json`, confira o emissor, o público e a validade do token.
 
@@ -165,13 +170,13 @@ Use o ID retornado como `pontoColetaId` no cadastro da lixeira. No exemplo, o po
 
 ## Integrações com IoT e IA
 
-Configure os endereços no `appsettings.json` ou por variáveis de ambiente. Os endereços abaixo são os valores locais usados durante o desenvolvimento. Cada URL base deve terminar com `/`.
+Configure os endereços no `appsettings.json` ou por variáveis de ambiente. A integração IoT consulta o Thinger.io na nuvem; a integração de IA consulta o Python local. Cada URL base deve terminar com `/`.
 
 ```json
 {
   "Integracoes": {
     "Wokwi": {
-      "BaseUrl": "http://localhost:8180/"
+      "BaseUrl": "https://backend.thinger.io/v3/users/larissa/devices/coletacerta_esp32/resources/"
     },
     "Ia": {
       "BaseUrl": "http://localhost:8000/"
@@ -182,12 +187,89 @@ Configure os endereços no `appsettings.json` ou por variáveis de ambiente. Os 
 
 | Integração | Variável de ambiente | Rota consultada pela API |
 |---|---|---|
-| ESP32 | `Integracoes__Wokwi__BaseUrl` | `GET /leitura` |
+| ESP32 via Thinger.io | `Integracoes__Wokwi__BaseUrl` | `GET leitura`, relativo à URL base, resultando em `/resources/leitura` |
+| Autenticação Thinger.io | `Integracoes__Wokwi__Token` | Cabeçalho `Authorization: Bearer <token>` enviado pelo C# |
 | Serviço Python | `Integracoes__Ia__BaseUrl` | `GET /previsao?regiao=Ipiranga` |
 
-### ESP32
+### ESP32 no Wokwi com Thinger.io — passo a passo para testar
 
-O endereço do Wokwi deve apontar para o servidor HTTP do ESP32, acessível à API pelo encaminhamento de porta ou pelo endereço combinado com a equipe. O ID devolvido pelo dispositivo deve corresponder ao da lixeira cadastrada e solicitada na API.
+**Abra a simulação:** [ColetaCerta — ESP32 no Wokwi](https://wokwi.com/projects/481061707496674305).
+
+Para testar, mantenha **a simulação executando no navegador e a API C# executando no Visual Studio, simultaneamente**, com acesso à internet. O ESP32 conecta-se ao Thinger.io, e a API C# consulta o recurso `leitura` do dispositivo pela internet. Não é necessário instalar gateway, executar o Wokwi no VS Code, abrir um túnel ou publicar a API C#.
+
+#### 1. Prepare a configuração e o banco
+
+Conclua as etapas de conexão MySQL, chave JWT e migrações deste README. Configure também `Integracoes:Wokwi:Token` nos Segredos do Usuário, com o token do Thinger.io fornecido pela equipe. Para apenas consultar pela API C#, o avaliador não precisa entrar na conta Thinger.io: a aplicação usa esse token.
+
+Confira a `BaseUrl` acima. Ela termina em `resources/`, pois o serviço C# acrescenta `leitura`. O nome `Wokwi` da configuração foi mantido por compatibilidade com o código existente.
+
+#### 2. Inicie o ESP32 no navegador
+
+1. Abra [o projeto Wokwi](https://wokwi.com/projects/481061707496674305).
+2. Clique no botão **Play / Start Simulation**.
+3. Aguarde a conexão Wi-Fi e a autenticação no Thinger.io. No monitor serial, procure a indicação de autenticação concluída e as leituras do sensor.
+4. Mantenha a aba aberta e a simulação executando durante os testes. Evite executar várias cópias com as mesmas credenciais do dispositivo.
+
+Se o dispositivo não autenticar, confira com a equipe as credenciais configuradas no firmware. A credencial do dispositivo usada no ESP32 é diferente do token REST configurado no C#. Não publique credenciais reais no README.
+
+#### 3. Inicie a API C# e faça login
+
+1. Execute `ColetaCerta.Api` no Visual Studio.
+2. Abra [o Swagger local](https://localhost:7189/swagger), ajustando a porta se necessário.
+3. Execute `POST /api/auth/login` com `admin` / `Admin@12345`.
+4. Copie o campo `token` retornado e cole somente seu valor em **Authorize**.
+
+O usuário `user` / `User@12345` também pode consultar a integração. No Swagger, use o **JWT do login C#**, não o token do Thinger.io.
+
+#### 4. Confirme o cadastro da lixeira
+
+O firmware da simulação utiliza `LIXEIRA_ID = 1`. Portanto, deve existir no banco uma lixeira com ID `1`, vinculada a um ponto de coleta.
+
+Consulte `GET /api/lixeiras/1`. Se não existir, cadastre um ponto e uma lixeira com o perfil ADMIN, usando os exemplos deste README. Confira o ID retornado: ele precisa corresponder ao ID do firmware. Em um banco já utilizado, um novo cadastro pode receber outro ID; nesse caso, alinhe o ID da simulação com o cadastro antes de testar.
+
+#### 5. Consulte a ocupação no Swagger
+
+Execute:
+
+```http
+GET /api/integracoes/iot/lixeiras/1
+```
+
+O resultado esperado é **200 OK**, com uma resposta semelhante a:
+
+```json
+{
+  "lixeiraId": 1,
+  "ocupacaoPercentual": 60,
+  "situacaoOcupacao": "ParcialmenteCheia",
+  "consultadoEm": "2026-11-18T22:03:29+00:00",
+  "origem": "ESP32_WOKWI"
+}
+```
+
+O percentual e o horário são exemplos. O campo `origem` identifica o ESP32 simulado; o acesso aos dados ocorre por intermédio do Thinger.io. `consultadoEm` representa o momento da consulta feita pelo C#, não uma data de medição enviada pelo sensor.
+
+#### 6. Verifique a alteração da leitura
+
+1. No Wokwi, clique no sensor ultrassônico **HC-SR04**.
+2. Altere a distância simulada.
+3. Aguarde alguns segundos e execute novamente a consulta no Swagger.
+4. Confira a mudança no percentual, na situação e nos indicadores do circuito.
+
+Com a altura de 40 cm e a distância mínima de 2 cm configuradas no firmware:
+
+| Distância aproximada | Ocupação esperada | Situação |
+|---|---|---|
+| 40 cm | 0% | `Vazia` |
+| 21 cm | 50% | `ParcialmenteCheia` |
+| 6 cm | 89% | `QuaseCheia` |
+| 2 cm | 100% | `Cheia` |
+
+**A consulta é ao vivo.** Se a simulação parar, a conexão com o dispositivo for perdida ou o Thinger.io estiver indisponível, a API não terá uma leitura ao vivo para retornar. Esta versão não armazena histórico nem a última leitura IoT no MySQL. Mantenha a simulação ligada durante a avaliação. O serviço Python de IA não precisa estar executando para testar a rota IoT.
+
+#### Contrato recebido do dispositivo
+
+O ID devolvido pelo dispositivo deve corresponder ao da lixeira cadastrada e solicitada na API. Os campos usados pelo C# são:
 
 ```json
 {
@@ -202,6 +284,20 @@ O endereço do Wokwi deve apontar para o servidor HTTP do ESP32, acessível à A
 | Acima de 10% e abaixo de 80% | `ParcialmenteCheia` |
 | De 80% a menos de 95% | `QuaseCheia` |
 | De 95% a 100% | `Cheia` |
+
+#### Solução de problemas
+
+| Problema | O que verificar |
+|---|---|
+| `401` no endpoint C# | Faça login e autorize com um JWT válido no Swagger |
+| `404` no endpoint IoT | Confirme que a lixeira solicitada existe no MySQL |
+| `502` com erro HTTP externo | Confira a URL, o token REST, a permissão para o recurso `leitura` e se a simulação está conectada |
+| `502` com leitura inválida | Confira os campos JSON, a leitura do sensor e a correspondência do ID da lixeira |
+| `503` | Confira internet, DNS e acesso ao servidor Thinger.io |
+| `504` | O serviço externo excedeu o tempo configurado para a chamada |
+| Falha ao carregar `secrets.json` | Confira as vírgulas, aspas e chaves; mantenha todas as configurações em um único objeto JSON |
+
+Se o erro externo persistir, use a aba API do dispositivo no Thinger.io para conferir a chamada real ou teste a URL completa no Postman com o token REST. Não utilize o JWT do C# nessa chamada externa.
 
 ### Serviço de IA
 
@@ -243,8 +339,9 @@ No Visual Studio, também é possível usar **Teste → Gerenciador de Testes �
 | Tentativa de cadastro com `USER` | `403`, com consulta permitida |
 | Login com senha incorreta e consulta IoT sem token válido | `401` nos testes automatizados |
 | Ocupação, leitura de outra lixeira e respostas de IA | Validadas com respostas simuladas |
-| Serviços externos desligados | `503` observado no Swagger nas duas rotas |
-| Consulta ponta a ponta ao ESP32 e ao serviço Python | Pendente até a disponibilização dos serviços pela equipe |
+| Serviços locais externos desligados na configuração anterior | `503` observado no Swagger nas duas rotas durante o desenvolvimento |
+| Consulta ponta a ponta ao ESP32 via Thinger.io | **HTTP 200 observado no Swagger**, com ocupação de 60% e situação `ParcialmenteCheia` |
+| Consulta ponta a ponta ao serviço Python de IA | **HTTP 200 observado no Swagger**, com previsão do modelo `RandomForestRegressor` |
 
 ## Resumo das evidências
 
@@ -398,5 +495,22 @@ No Visual Studio, também é possível usar **Teste → Gerenciador de Testes �
 **Print — `11-consulta-sem-token.png`**
 
 <img width="1413" height="517" alt="image" src="https://github.com/user-attachments/assets/1cb0ef48-b408-4c3a-aa40-a815c955c564" />
+
+## 12. Consulta resposta de sucesso endpoint IA
+
+**Endpoint:** `GET /api/integracoes/ia/previsao`
+
+**Resultado esperado:** **200 OK**.
+
+<img width="1412" height="912" alt="image" src="https://github.com/user-attachments/assets/94525cc5-8d5e-44e7-9563-7e56abfb9a93" />
+
+## 13. Consulta resposta de sucesso endpoint IoT
+
+**Endpoint:** `GET /api/integracoes/iot/lixeiras/{id}`
+
+**Resultado esperado:** **200 OK**.
+
+<img width="962" height="597" alt="image" src="https://github.com/user-attachments/assets/974e8397-ceb3-4e61-b2a6-5cd483779fc3" />
+
 
 
