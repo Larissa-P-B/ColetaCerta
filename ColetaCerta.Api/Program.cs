@@ -179,6 +179,19 @@ builder.Services
 
             client.BaseAddress = uri;
             client.Timeout = TimeSpan.FromSeconds(10);
+
+            var token = builder.Configuration["Integracoes:Wokwi:Token"];
+
+            if (string.IsNullOrWhiteSpace(token))
+            {
+                throw new InvalidOperationException(
+                    "Configure Integracoes:Wokwi:Token nos Segredos do Usuário.");
+            }
+
+            client.DefaultRequestHeaders.Authorization =
+                new System.Net.Http.Headers.AuthenticationHeaderValue(
+                    "Bearer",
+                    token);
         });
 builder.Services
     .AddHttpClient<IIntegracaoIaService, IntegracaoIaService>(
